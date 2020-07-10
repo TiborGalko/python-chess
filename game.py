@@ -46,19 +46,19 @@ class Application(tk.Frame):
             y = i * self.width
             for j in range(8):
                 x = j * self.width
-                if ((j+1) % 2) == 0:
-                    if ((i+1) % 2) == 0:
-                        canvas.create_rectangle(x, y, x+self.width, y+self.width,
+                if ((j + 1) % 2) == 0:
+                    if ((i + 1) % 2) == 0:
+                        canvas.create_rectangle(x, y, x + self.width, y + self.width,
                                                 outline="#808080", fill="#fff")  # biela
                     else:
-                        canvas.create_rectangle(x, y, x+self.width, y+self.width,
+                        canvas.create_rectangle(x, y, x + self.width, y + self.width,
                                                 outline="#808080", fill="#999")  # cierna
                 else:
-                    if ((i+1) % 2) == 1:
-                        canvas.create_rectangle(x, y, x+self.width, y+self.width,
+                    if ((i + 1) % 2) == 1:
+                        canvas.create_rectangle(x, y, x + self.width, y + self.width,
                                                 outline="#808080", fill="#fff")  # biela
                     else:
-                        canvas.create_rectangle(x, y, x+self.width, y+self.width,
+                        canvas.create_rectangle(x, y, x + self.width, y + self.width,
                                                 outline="#808080", fill="#999")  # cierna
 
         return canvas
@@ -66,19 +66,19 @@ class Application(tk.Frame):
     def add_annotations(self):
         """ Method adds numbers and letters to board sides """
         for i in range(8):
-            self.text.append(self.canvas.create_text(-self.width/2,
-                                                     (self.width/2)+(i*self.width),
+            self.text.append(self.canvas.create_text(-self.width / 2,
+                                                     (self.width / 2) + (i * self.width),
                                                      font=("Purisa", 12), anchor="nw"))
-            self.canvas.itemconfig(self.text[i], text=str((i-8)*-1))
+            self.canvas.itemconfig(self.text[i], text=str((i - 8) * -1))
         for i in range(8):
-            self.text.append(self.canvas.create_text((self.width/2)+(i*self.width),
-                                                     self.width*8+10, font=("Purisa", 12), anchor="nw"))
-            self.canvas.itemconfig(self.text[i+8], text=string.ascii_lowercase[i])
+            self.text.append(self.canvas.create_text((self.width / 2) + (i * self.width),
+                                                     self.width * 8 + 10, font=("Purisa", 12), anchor="nw"))
+            self.canvas.itemconfig(self.text[i + 8], text=string.ascii_lowercase[i])
 
     def populate_board(self):
         """ Method adds images on canvas board """
         for key, value in self.game.white_pieces.items():
-            x_pos = self.width*value.x_pos
+            x_pos = self.width * value.x_pos
             y_pos = self.width * value.y_pos
             img = self.load_image("images/" + value.image, value.starting_position)
             self.place_image_on_canvas(x_pos, y_pos, img, "images/" + value.image, value.position)
@@ -99,7 +99,7 @@ class Application(tk.Frame):
         self.images[piece_starting_position] = image_id
 
     def remove_image_from_canvas(self, piece_position):
-        print("Removing image on key ",piece_position)
+        print("Removing image on key ", piece_position)
         self.canvas.delete(self.images[piece_position])
 
     def move_image_on_canvas(self, new_x, new_y, piece_position):
@@ -114,10 +114,10 @@ class Application(tk.Frame):
     def show_moves_on_canvas(self, moves):
         for move in moves:
             self.actual_moves_ids.append(self.canvas.create_oval(move[0] * self.width + 15,
-                                    move[1] * self.width + 15,
-                                    move[0] * self.width + 15 + (self.width / 2),
-                                    move[1] * self.width + 15 + (self.width / 2),
-                                    fill="green"))
+                                                                 move[1] * self.width + 15,
+                                                                 move[0] * self.width + 15 + (self.width / 2),
+                                                                 move[1] * self.width + 15 + (self.width / 2),
+                                                                 fill="green"))
 
     def clear_moves_on_canvas(self):
         for move in self.actual_moves_ids:
@@ -140,6 +140,9 @@ class Application(tk.Frame):
         self.text_box['state'] = tk.NORMAL
         self.text_box.insert(tk.END, text)
         self.text_box['state'] = tk.DISABLED
+
+    def raise_check(self):
+        self.write_text("CHECK!")
 
     def click_callback(self, event):
         """ On click event callback """
@@ -191,10 +194,11 @@ class Application(tk.Frame):
 
             pprint(self.game.board)
 
-            made_move = string.ascii_lowercase[x] + str(y)
-            print(str(self.game.current_turn) + ". " + made_move)
+            made_move = string.ascii_lowercase[x] + str(((y - 8) * -1) % 9)
             if self.moving_piece.color == "w":
                 self.write_text(str(self.game.current_turn) + ". ")
+
+            # TODO CHECK FOR CHECK AND CHECK MATE
 
             self.write_text(made_move + " ")
 
@@ -248,22 +252,36 @@ class Application(tk.Frame):
         x, y = piece.get_indices_on_board()
         board = self.game.board
         if y < 7 and (board[x][y + 1] == "" or piece.color != board[x][y + 1][0]):
-            moves.append((piece.x_pos, piece.y_pos + 1))
-        if y > 0 and (board[x][y - 1] == "" or piece.color != board[x][y - 1][0]):
-            moves.append((piece.x_pos, piece.y_pos - 1))
-        if x > 0 and (board[x-1][y] == "" or piece.color != board[x-1][y][0]):
-            moves.append((piece.x_pos - 1, piece.y_pos))
-        if x < 7 and (board[x+1][y] == "" or piece.color != board[x+1][y][0]):
-            moves.append((piece.x_pos + 1, piece.y_pos))
+            if not board[x][y + 1].__contains__("K"):
+                moves.append((piece.x_pos, piece.y_pos + 1))
 
-        if x < 7 and y < 7 and (board[x+1][y+1] == "" or piece.color != board[x+1][y+1][0]):
-            moves.append((piece.x_pos + 1, piece.y_pos + 1))
-        if x < 7 and y > 0 and (board[x+1][y-1] == "" or piece.color != board[x+1][y-1][0]):
-            moves.append((piece.x_pos + 1, piece.y_pos - 1))
-        if x > 0 and y < 7 and (board[x-1][y+1] == "" or piece.color != board[x-1][y+1][0]):
-            moves.append((piece.x_pos - 1, piece.y_pos + 1))
-        if x > 0 and y > 0 and (board[x-1][y-1] == "" or piece.color != board[x-1][y-1][0]):
-            moves.append((piece.x_pos - 1, piece.y_pos - 1))
+        if y > 0 and (board[x][y - 1] == "" or piece.color != board[x][y - 1][0]):
+            if not board[x][y - 1].__contains__("K"):
+                moves.append((piece.x_pos, piece.y_pos - 1))
+
+        if x > 0 and (board[x - 1][y] == "" or piece.color != board[x - 1][y][0]):
+            if not board[x - 1][y].__contains__("K"):
+                moves.append((piece.x_pos - 1, piece.y_pos))
+
+        if x < 7 and (board[x + 1][y] == "" or piece.color != board[x + 1][y][0]):
+            if not board[x + 1][y].__contains__("K"):
+                moves.append((piece.x_pos + 1, piece.y_pos))
+
+        if x < 7 and y < 7 and (board[x + 1][y + 1] == "" or piece.color != board[x + 1][y + 1][0]):
+            if not board[x + 1][y + 1].__contains__("K"):
+                moves.append((piece.x_pos + 1, piece.y_pos + 1))
+
+        if x < 7 and y > 0 and (board[x + 1][y - 1] == "" or piece.color != board[x + 1][y - 1][0]):
+            if not board[x + 1][y - 1].__contains__("K"):
+                moves.append((piece.x_pos + 1, piece.y_pos - 1))
+
+        if x > 0 and y < 7 and (board[x - 1][y + 1] == "" or piece.color != board[x - 1][y + 1][0]):
+            if not board[x - 1][y + 1].__contains__("K"):
+                moves.append((piece.x_pos - 1, piece.y_pos + 1))
+
+        if x > 0 and y > 0 and (board[x - 1][y - 1] == "" or piece.color != board[x - 1][y - 1][0]):
+            if not board[x - 1][y - 1].__contains__("K"):
+                moves.append((piece.x_pos - 1, piece.y_pos - 1))
 
         self.show_moves_on_canvas(moves)
         return moves
@@ -289,7 +307,8 @@ class Application(tk.Frame):
                     moves.append((new_x, new_y,))
                 else:
                     if piece.color != board[new_x][new_y][0]:
-                        moves.append((new_x, new_y,))
+                        if not board[new_x][new_y].__contains__("K"):
+                            moves.append((new_x, new_y,))
                     break
             else:
                 break
@@ -305,7 +324,8 @@ class Application(tk.Frame):
                     moves.append((new_x, new_y,))
                 else:
                     if piece.color != board[new_x][new_y][0]:
-                        moves.append((new_x, new_y,))
+                        if not board[new_x][new_y].__contains__("K"):
+                            moves.append((new_x, new_y,))
                     break
             else:
                 break
@@ -321,7 +341,8 @@ class Application(tk.Frame):
                     moves.append((new_x, new_y,))
                 else:
                     if piece.color != board[new_x][new_y][0]:
-                        moves.append((new_x, new_y,))
+                        if not board[new_x][new_y].__contains__("K"):
+                            moves.append((new_x, new_y,))
                     break
             else:
                 break
@@ -337,7 +358,8 @@ class Application(tk.Frame):
                     moves.append((new_x, new_y,))
                 else:
                     if piece.color != board[new_x][new_y][0]:
-                        moves.append((new_x, new_y,))
+                        if not board[new_x][new_y].__contains__("K"):
+                            moves.append((new_x, new_y,))
                     break
             else:
                 break
@@ -349,21 +371,37 @@ class Application(tk.Frame):
         x, y = piece.get_indices_on_board()
         board = self.game.board
         if y > 0 and x < 7 and (board[x + 1][y - 2] == "" or piece.color != board[x + 1][y - 2][0]):
-            moves.append((x + 1, y - 2,))
+            if not board[x + 1][y - 2].__contains__("K"):
+                moves.append((x + 1, y - 2,))
+
         if y > 0 and x > 0 and (board[x - 1][y - 2] == "" or piece.color != board[x - 1][y - 2][0]):
-            moves.append((x - 1, y - 2,))
+            if not board[x - 1][y - 2].__contains__("K"):
+                moves.append((x - 1, y - 2,))
+
         if y < 6 and x < 7 and (board[x + 1][y + 2] == "" or piece.color != board[x + 1][y + 2][0]):
-            moves.append((x + 1, y + 2,))
+            if not board[x + 1][y + 2].__contains__("K"):
+                moves.append((x + 1, y + 2,))
+
         if y < 6 and x > 0 and (board[x - 1][y + 2] == "" or piece.color != board[x - 1][y + 2][0]):
-            moves.append((x - 1, y + 2,))
+            if not board[x - 1][y + 2].__contains__("K"):
+                moves.append((x - 1, y + 2,))
+
         if y > 0 and x > 1 and (board[x - 2][y - 1] == "" or piece.color != board[x - 2][y - 1][0]):
-            moves.append((x - 2, y - 1,))
+            if not board[x - 2][y - 1].__contains__("K"):
+                moves.append((x - 2, y - 1,))
+
         if y > 0 and x < 6 and (board[x + 2][y - 1] == "" or piece.color != board[x + 2][y - 1][0]):
-            moves.append((x + 2, y - 1,))
+            if not board[x + 2][y - 1].__contains__("K"):
+                moves.append((x + 2, y - 1,))
+
         if y < 7 and x > 1 and (board[x - 2][y + 1] == "" or piece.color != board[x - 2][y + 1][0]):
-            moves.append((x - 2, y + 1,))
+            if not board[x - 2][y + 1].__contains__("K"):
+                moves.append((x - 2, y + 1,))
+
         if y < 7 and x < 6 and (board[x + 2][y + 1] == "" or piece.color != board[x + 2][y + 1][0]):
-            moves.append((x + 2, y + 1,))
+            if not board[x + 2][y + 1].__contains__("K"):
+                moves.append((x + 2, y + 1,))
+
         return moves
 
     def rook_move(self, piece):
@@ -376,8 +414,9 @@ class Application(tk.Frame):
                 if board[i][y] == "":
                     moves.append((i, y,))
                 elif piece.color != board[i][y][0]:
-                    moves.append((i, y,))
-                    break
+                    if not board[i][y].__contains__("K"):
+                        moves.append((i, y,))
+                        break
                 else:
                     break
         if x > 0:
@@ -386,8 +425,9 @@ class Application(tk.Frame):
                 if board[j][y] == "":
                     moves.append((j, y,))
                 elif piece.color != board[j][y][0]:
-                    moves.append((j, y,))
-                    break
+                    if not board[j][y].__contains__("K"):
+                        moves.append((j, y,))
+                        break
                 else:
                     break
         if y < 7:
@@ -396,19 +436,20 @@ class Application(tk.Frame):
                 if board[x][k] == "":
                     moves.append((x, k,))
                 elif piece.color != board[x][k][0]:
-                    moves.append((x, k,))
-                    break
+                    if not board[x][k].__contains__("K"):
+                        moves.append((x, k,))
+                        break
                 else:
                     break
         if y > 0:
             # move up
             for l in range(y - 1, -1, -1):
-                print(l)
                 if board[x][l] == "":
                     moves.append((x, l,))
                 elif piece.color != board[x][l][0]:
-                    moves.append((x, l,))
-                    break
+                    if not board[x][l].__contains__("K"):
+                        moves.append((x, l,))
+                        break
                 else:
                     break
 
@@ -424,9 +465,12 @@ class Application(tk.Frame):
             if not piece.moved and board[x][y - 2] == "":
                 moves.append((x, y - 2,))
         if x > 0 and board[x - 1][y - 1].startswith("b"):
-            moves.append((x - 1, y - 1,))
+            if not board[x - 1][y - 1].__contains__("K"):
+                moves.append((x - 1, y - 1,))
+
         if x < 7 and board[x + 1][y - 1].startswith("b"):
-            moves.append((x + 1, y - 1,))
+            if not board[x + 1][y - 1].__contains__("K"):
+                moves.append((x + 1, y - 1,))
 
         return moves
 
@@ -440,9 +484,11 @@ class Application(tk.Frame):
             if y < 7 and not piece.moved and board[x][y + 2] == "":
                 moves.append((x, y + 2,))
         if x > 0 and y < 7 and board[x - 1][y + 1].startswith("w"):
-            moves.append((x - 1, y + 1,))
+            if not board[x - 1][y + 1].__contains__("K"):
+                moves.append((x - 1, y + 1,))
+
         if x < 7 and y < 7 and board[x + 1][y + 1].startswith("w"):
-            moves.append((x + 1, y + 1,))
+            if not board[x + 1][y + 1].__contains__("K"):
+                moves.append((x + 1, y + 1,))
 
         return moves
-

@@ -7,7 +7,7 @@ def main():
     root = tk.Tk()
     root.geometry("800x600")
     root.resizable(0, 0)
-    root.title("ABC")
+    root.title("Chess")
 
     app = Application(0, 0, master=root)
     app.pack(side=tk.LEFT, anchor=tk.E)
