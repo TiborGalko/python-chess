@@ -58,6 +58,9 @@ class ChessGame:
 
         self.current_turn = 1
 
+        # Check whether game started to turn on timers
+        self.game_started = False
+
     def next_move(self):
         if self.current_player_color == "w":
             self.current_player_color = "b"

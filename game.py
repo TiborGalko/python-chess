@@ -1,9 +1,11 @@
 from game_manager import ChessGame
+from moves_manager import MovesManager
 import tkinter as tk
 import string
 import math
 from pprint import pprint
 from PIL import ImageTk, Image
+from time import strftime, strptime
 
 
 class Application(tk.Frame):
@@ -18,17 +20,25 @@ class Application(tk.Frame):
         self.offset_y = -20
         self.width = 60
         self.game = ChessGame()
+        self.moves_manager = MovesManager()
         self.moving = False
         self.moving_piece = None
         self.moving_piece_key = ""
         self.actual_moves_ids = []
         self.moves = []
 
+        self.panel_top = tk.PanedWindow(master=self, width=530, height=40)
+        self.panel_top.grid(column=0, row=1)
+        self.panel_mid = tk.PanedWindow(master=self, width=530, height=550)
+        self.panel_mid.grid(column=0, row=2)
+        self.panel_bot = tk.PanedWindow(master=self, width=530, height=40)
+        self.panel_bot.grid(column=0, row=3)
+
         self.canvas = self.create_board()
         self.canvas.pack(side=tk.LEFT)
 
         self.canvas.bind("<Button-1>", self.click_callback)
-        # self.canvas.bind("<B1-Motion>", self.mouse_move_callback) TODO
+        # self.canvas.bind("<B1-Motion>", self.mouse_move_callback) TODO drag and drop ?
 
         self.text = []
         self.add_annotations()
@@ -36,9 +46,14 @@ class Application(tk.Frame):
 
         self.text_box = self.create_text()
 
+        self.configured_time = "05:00"
+        self.time_p1 = strptime(self.configured_time, "%M:%S")
+        self.time_p2 = strptime(self.configured_time, "%M:%S")
+        self.timers = self.create_timers()
+
     def create_board(self):
         """ Method creates new chess board on tkinter canvas and returns it"""
-        canvas = tk.Canvas(master=self, width=530, height=550)
+        canvas = tk.Canvas(master=self.panel_mid, width=530, height=550)
         canvas.configure(scrollregion=(self.offset_x, self.offset_y, 20, 20))
 
         # x1 y1 x2 y2
@@ -123,11 +138,15 @@ class Application(tk.Frame):
         for move in self.actual_moves_ids:
             self.canvas.delete(move)
 
+    """
+    Create textbox on left side and method to write to it
+    """
+
     def create_text(self):
-        text_box = tk.Text(master=self, height=28, width=31)
+        text_box = tk.Text(master=self.panel_mid, height=28, width=31)
         text_box.insert(tk.END, "Welcome.\nIt's been a long minute.\n\n")
 
-        scrollbar = tk.Scrollbar(master=self, command=text_box.yview, orient=tk.VERTICAL)
+        scrollbar = tk.Scrollbar(master=self.panel_mid, command=text_box.yview, orient=tk.VERTICAL)
         text_box.config(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y, expand=False)
 
@@ -141,7 +160,50 @@ class Application(tk.Frame):
         self.text_box.insert(tk.END, text)
         self.text_box['state'] = tk.DISABLED
 
+    """
+    Timers
+    """
+
+    def create_timers(self):
+        timers = []
+
+        timer1_textbox = tk.Label(master=self.panel_top, height=1, width=8)
+        timer1_textbox.configure(text=str(self.time_p1.tm_min).zfill(2) + ":" + str(self.time_p1.tm_sec).zfill(2))
+        timer1_textbox.pack(side=tk.TOP, expand=True)
+        timers.append(timer1_textbox)
+
+        timer2_textbox = tk.Label(master=self.panel_bot, height=1, width=8)
+        timer2_textbox.configure(text=str(self.time_p2.tm_min).zfill(2) + ":" + str(self.time_p2.tm_sec).zfill(2))
+        timer2_textbox.pack(side=tk.RIGHT, expand=True)
+        timers.append(timer2_textbox)
+
+        return timers
+
+    # TODO cas sa pocita az po prvom pohybe bieleho, spustia sa hodiny cierneho
+    def show_time(self, timer, color):
+        # current_time = timer.get(1.0, tk.END)
+
+        sec = self.time_p1.tm_sec
+        min = self.time_p1.tm_min
+
+        sec = sec - 1
+        if sec < 0:
+            sec = 59
+            min = min - 1
+
+        self.time_p1 = strptime(str(min) + ":" + str(sec), "%M:%S")
+
+        timer.configure(text=str(min).zfill(2) + ":" + str(sec).zfill(2))
+
+        if self.game.current_player_color == color:
+            self.after(1000, self.show_time, timer, color)
+
+    """
+    Other game methods
+    """
+
     def raise_check(self):
+        # TODO dokoncit metodu
         self.write_text("CHECK!")
 
     def click_callback(self, event):
@@ -168,6 +230,7 @@ class Application(tk.Frame):
 
     def mouse_move_callback(self, event):
         """ On mouse move event callback """
+        # TODO
         print("moving at ", event.x + self.offset_x, event.y + self.offset_y)
 
     def move_piece(self, x, y):
@@ -199,18 +262,57 @@ class Application(tk.Frame):
                 self.write_text(str(self.game.current_turn) + ". ")
 
             # TODO CHECK FOR CHECK AND CHECK MATE
+            # TODO zmenit meno pre piece po pohnuti
 
-            self.write_text(made_move + " ")
+            print(self.moving_piece)
+            print(self.moving_piece.name)
+
+            # POPIS notacie :
+            # Pawn - destination square
+            # Pawn pri vyhodeni - exd5 - pesiak z e isiel na d5 a vyhodil
+            # TODO En passant vyhodenia - exd6e.p. - pesiak z e isiel na d6 a vyhodil toho na e5 cez en passant
+            # Ostatne Be5 - strelec sa posunul na e5, e5 je destination
+            # TODO Pri vyhodeni - Bxe5 - strelec vyhodil na e5
+
+            # TODO Ak mozu robit pohyby rovnake figurky na rovnake pole treba rozlisit, priorita
+            # TODO 1. ak su rozdielne zaciatocne polia - Bdb8 je strelec ktory bol na zaciatku na d poli ak ten druhy strelec je na inom poli
+            # TODO 2. zapise sa riadok ak su na rovnakom stlpci - R1a3
+            # TODO 3. zapise sa riadok aj stlpec ak nestaci jeden - Qh4e1 - vyhodenie je Qh4xe1
+
+            # TODO Zmena pesiaka na kralovnu napr. - e8Q
+
+            # TODO Navrh remizy je oznaceny =
+
+            # TODO Rosady (castling)
+            # TODO Na strane krala - 0-0
+            # TODO Na strane kralovnej - 0-0-0
+
+            # TODO Sach (check) - prida na koniec +
+            # TODO Sachmat (checkmate) - prida sa na koniec #
+            # TODO Po skonceni sa 1-0 znamena ze biely vyhral, 0-1 ze cierny vyhral
+            # TODO 1|2-1|2 indikuje remizu
+
+            # TODO zistit ci sa vyhodilo alebo nie
+            self.write_text(self.moving_piece.name + made_move + " ")
 
             self.game.next_move()
+
+            if not self.game.game_started:
+                self.game.game_started = True
+                if self.game.current_player_color == "b":
+                    self.after(1000, self.show_time, self.timers[2], self.game.current_player_color)
+                else:
+                    self.after(1000, self.show_time, self.timers[1], self.game.current_player_color)
+
             # TODO change position too
             # TODO update on board
 
-    """
-    Moves for each of the pieces
-    """
-
     def calculate_moves_for_moving_piece(self, x, y):
+        """
+        Calculating moves for pieces. Has to set self.moves
+        :param x: x coordinate on board
+        :param y: y coordinate on board
+        """
         print("clicked at ", x, y)
         print(self.game.board[x][y])
         board_value = self.game.board[x][y]
@@ -227,268 +329,5 @@ class Application(tk.Frame):
             piece = self.moving_piece
 
             if piece.color == player_color:
-                if piece.name == "" and player_color == "w":
-                    self.moves = self.white_pawn_move(piece)
-                elif piece.name == "" and player_color == "b":
-                    self.moves = self.black_pawn_move(piece)
-                elif piece.name == "K":
-                    self.moves = self.king_move(piece)
-                elif piece.name == "Q":
-                    self.moves = self.queen_move(piece)
-                elif piece.name == "B":
-                    self.moves = self.bishop_move(piece)
-                elif piece.name == "N":
-                    self.moves = self.knight_move(piece)
-                elif piece.name == "R":
-                    self.moves = self.rook_move(piece)
-                else:
-                    print("Error, never should have got here.")
-                    exit()
-
+                self.moves = self.moves_manager.get_moves(piece, self.game.board)
                 self.show_moves_on_canvas(self.moves)
-
-    def king_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-        if y < 7 and (board[x][y + 1] == "" or piece.color != board[x][y + 1][0]):
-            if not board[x][y + 1].__contains__("K"):
-                moves.append((piece.x_pos, piece.y_pos + 1))
-
-        if y > 0 and (board[x][y - 1] == "" or piece.color != board[x][y - 1][0]):
-            if not board[x][y - 1].__contains__("K"):
-                moves.append((piece.x_pos, piece.y_pos - 1))
-
-        if x > 0 and (board[x - 1][y] == "" or piece.color != board[x - 1][y][0]):
-            if not board[x - 1][y].__contains__("K"):
-                moves.append((piece.x_pos - 1, piece.y_pos))
-
-        if x < 7 and (board[x + 1][y] == "" or piece.color != board[x + 1][y][0]):
-            if not board[x + 1][y].__contains__("K"):
-                moves.append((piece.x_pos + 1, piece.y_pos))
-
-        if x < 7 and y < 7 and (board[x + 1][y + 1] == "" or piece.color != board[x + 1][y + 1][0]):
-            if not board[x + 1][y + 1].__contains__("K"):
-                moves.append((piece.x_pos + 1, piece.y_pos + 1))
-
-        if x < 7 and y > 0 and (board[x + 1][y - 1] == "" or piece.color != board[x + 1][y - 1][0]):
-            if not board[x + 1][y - 1].__contains__("K"):
-                moves.append((piece.x_pos + 1, piece.y_pos - 1))
-
-        if x > 0 and y < 7 and (board[x - 1][y + 1] == "" or piece.color != board[x - 1][y + 1][0]):
-            if not board[x - 1][y + 1].__contains__("K"):
-                moves.append((piece.x_pos - 1, piece.y_pos + 1))
-
-        if x > 0 and y > 0 and (board[x - 1][y - 1] == "" or piece.color != board[x - 1][y - 1][0]):
-            if not board[x - 1][y - 1].__contains__("K"):
-                moves.append((piece.x_pos - 1, piece.y_pos - 1))
-
-        self.show_moves_on_canvas(moves)
-        return moves
-
-    def queen_move(self, piece):
-        moves = self.bishop_move(piece)
-        moves.extend(self.rook_move(piece))
-        return moves
-
-    def bishop_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-
-        # down right
-        new_x = x
-        new_y = y
-        for i in range(x, 8):
-            new_x += 1
-            new_y += 1
-            if new_x < 8 and new_y < 8:
-                if board[new_x][new_y] == "":
-                    moves.append((new_x, new_y,))
-                else:
-                    if piece.color != board[new_x][new_y][0]:
-                        if not board[new_x][new_y].__contains__("K"):
-                            moves.append((new_x, new_y,))
-                    break
-            else:
-                break
-
-        # up left
-        new_x = x
-        new_y = y
-        for i in range(0, x):
-            new_x -= 1
-            new_y -= 1
-            if new_x >= 0 and new_y >= 0:
-                if board[new_x][new_y] == "":
-                    moves.append((new_x, new_y,))
-                else:
-                    if piece.color != board[new_x][new_y][0]:
-                        if not board[new_x][new_y].__contains__("K"):
-                            moves.append((new_x, new_y,))
-                    break
-            else:
-                break
-
-        # up right
-        new_x = x
-        new_y = y
-        for i in range(x, 8):
-            new_x += 1
-            new_y -= 1
-            if new_x < 8 and new_y >= 0:
-                if board[new_x][new_y] == "":
-                    moves.append((new_x, new_y,))
-                else:
-                    if piece.color != board[new_x][new_y][0]:
-                        if not board[new_x][new_y].__contains__("K"):
-                            moves.append((new_x, new_y,))
-                    break
-            else:
-                break
-
-        # down left
-        new_x = x
-        new_y = y
-        for i in range(0, x):
-            new_x -= 1
-            new_y += 1
-            if new_x >= 0 and new_y < 8:
-                if board[new_x][new_y] == "":
-                    moves.append((new_x, new_y,))
-                else:
-                    if piece.color != board[new_x][new_y][0]:
-                        if not board[new_x][new_y].__contains__("K"):
-                            moves.append((new_x, new_y,))
-                    break
-            else:
-                break
-
-        return moves
-
-    def knight_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-        if y > 0 and x < 7 and (board[x + 1][y - 2] == "" or piece.color != board[x + 1][y - 2][0]):
-            if not board[x + 1][y - 2].__contains__("K"):
-                moves.append((x + 1, y - 2,))
-
-        if y > 0 and x > 0 and (board[x - 1][y - 2] == "" or piece.color != board[x - 1][y - 2][0]):
-            if not board[x - 1][y - 2].__contains__("K"):
-                moves.append((x - 1, y - 2,))
-
-        if y < 6 and x < 7 and (board[x + 1][y + 2] == "" or piece.color != board[x + 1][y + 2][0]):
-            if not board[x + 1][y + 2].__contains__("K"):
-                moves.append((x + 1, y + 2,))
-
-        if y < 6 and x > 0 and (board[x - 1][y + 2] == "" or piece.color != board[x - 1][y + 2][0]):
-            if not board[x - 1][y + 2].__contains__("K"):
-                moves.append((x - 1, y + 2,))
-
-        if y > 0 and x > 1 and (board[x - 2][y - 1] == "" or piece.color != board[x - 2][y - 1][0]):
-            if not board[x - 2][y - 1].__contains__("K"):
-                moves.append((x - 2, y - 1,))
-
-        if y > 0 and x < 6 and (board[x + 2][y - 1] == "" or piece.color != board[x + 2][y - 1][0]):
-            if not board[x + 2][y - 1].__contains__("K"):
-                moves.append((x + 2, y - 1,))
-
-        if y < 7 and x > 1 and (board[x - 2][y + 1] == "" or piece.color != board[x - 2][y + 1][0]):
-            if not board[x - 2][y + 1].__contains__("K"):
-                moves.append((x - 2, y + 1,))
-
-        if y < 7 and x < 6 and (board[x + 2][y + 1] == "" or piece.color != board[x + 2][y + 1][0]):
-            if not board[x + 2][y + 1].__contains__("K"):
-                moves.append((x + 2, y + 1,))
-
-        return moves
-
-    def rook_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-        if x < 7:
-            # move right
-            for i in range(x + 1, 8):
-                if board[i][y] == "":
-                    moves.append((i, y,))
-                elif piece.color != board[i][y][0]:
-                    if not board[i][y].__contains__("K"):
-                        moves.append((i, y,))
-                        break
-                else:
-                    break
-        if x > 0:
-            # move left
-            for j in range(x - 1, -1, -1):
-                if board[j][y] == "":
-                    moves.append((j, y,))
-                elif piece.color != board[j][y][0]:
-                    if not board[j][y].__contains__("K"):
-                        moves.append((j, y,))
-                        break
-                else:
-                    break
-        if y < 7:
-            # move down
-            for k in range(y + 1, 8):
-                if board[x][k] == "":
-                    moves.append((x, k,))
-                elif piece.color != board[x][k][0]:
-                    if not board[x][k].__contains__("K"):
-                        moves.append((x, k,))
-                        break
-                else:
-                    break
-        if y > 0:
-            # move up
-            for l in range(y - 1, -1, -1):
-                if board[x][l] == "":
-                    moves.append((x, l,))
-                elif piece.color != board[x][l][0]:
-                    if not board[x][l].__contains__("K"):
-                        moves.append((x, l,))
-                        break
-                else:
-                    break
-
-        return moves
-
-    def white_pawn_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-
-        if board[x][y - 1] == "":
-            moves.append((x, y - 1,))
-            if not piece.moved and board[x][y - 2] == "":
-                moves.append((x, y - 2,))
-        if x > 0 and board[x - 1][y - 1].startswith("b"):
-            if not board[x - 1][y - 1].__contains__("K"):
-                moves.append((x - 1, y - 1,))
-
-        if x < 7 and board[x + 1][y - 1].startswith("b"):
-            if not board[x + 1][y - 1].__contains__("K"):
-                moves.append((x + 1, y - 1,))
-
-        return moves
-
-    def black_pawn_move(self, piece):
-        moves = []
-        x, y = piece.get_indices_on_board()
-        board = self.game.board
-
-        if y < 7 and board[x][y + 1] == "":
-            moves.append((x, y + 1,))
-            if y < 7 and not piece.moved and board[x][y + 2] == "":
-                moves.append((x, y + 2,))
-        if x > 0 and y < 7 and board[x - 1][y + 1].startswith("w"):
-            if not board[x - 1][y + 1].__contains__("K"):
-                moves.append((x - 1, y + 1,))
-
-        if x < 7 and y < 7 and board[x + 1][y + 1].startswith("w"):
-            if not board[x + 1][y + 1].__contains__("K"):
-                moves.append((x + 1, y + 1,))
-
-        return moves
