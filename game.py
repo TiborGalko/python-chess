@@ -46,10 +46,12 @@ class Application(tk.Frame):
 
         self.text_box = self.create_text()
 
+        # TODO konfigurovatelny cas pre tahy v nejakom menu mozno
         self.configured_time = "05:00"
         self.time_p1 = strptime(self.configured_time, "%M:%S")
         self.time_p2 = strptime(self.configured_time, "%M:%S")
         self.timers = self.create_timers()
+        self.running_timer = None
 
     def create_board(self):
         """ Method creates new chess board on tkinter canvas and returns it"""
@@ -139,7 +141,7 @@ class Application(tk.Frame):
             self.canvas.delete(move)
 
     """
-    Create textbox on left side and method to write to it
+    Create textbox on right side and method to write to it
     """
 
     def create_text(self):
@@ -179,24 +181,44 @@ class Application(tk.Frame):
 
         return timers
 
-    # TODO cas sa pocita az po prvom pohybe bieleho, spustia sa hodiny cierneho
-    def show_time(self, timer, color):
-        # current_time = timer.get(1.0, tk.END)
+    def start_opponents_timer(self, timer, p):
+        """
+        Starts timer on opponents clock and stops players timer
+        :param timer: timer from timer array
+        :param p: index of opponent 1 - white, 2 - black
+        """
+        if self.running_timer is not None:
+            self.after_cancel(self.running_timer)
+            self.running_timer = None
+            self.running_timer = self.after(1000, self.show_time, timer, p)
+        else:
+            # First move
+            self.running_timer = self.after(1000, self.show_time, timer, p)
 
-        sec = self.time_p1.tm_sec
-        min = self.time_p1.tm_min
+    def show_time(self, timer, p):
+        if p == 2:
+            sec = self.time_p1.tm_sec
+            min = self.time_p1.tm_min
+        else:
+            sec = self.time_p2.tm_sec
+            min = self.time_p2.tm_min
 
         sec = sec - 1
         if sec < 0:
             sec = 59
             min = min - 1
 
-        self.time_p1 = strptime(str(min) + ":" + str(sec), "%M:%S")
+        if min <= 0:
+            # TODO ukonci hru lebo skoncil cas
+            self.stop_game(p)
+
+        if p == 2:
+            self.time_p1 = strptime(str(min) + ":" + str(sec), "%M:%S")
+        else:
+            self.time_p2 = strptime(str(min) + ":" + str(sec), "%M:%S")
 
         timer.configure(text=str(min).zfill(2) + ":" + str(sec).zfill(2))
-
-        if self.game.current_player_color == color:
-            self.after(1000, self.show_time, timer, color)
+        self.running_timer = self.after(1000, self.show_time, timer, p)
 
     """
     Other game methods
@@ -205,6 +227,15 @@ class Application(tk.Frame):
     def raise_check(self):
         # TODO dokoncit metodu
         self.write_text("CHECK!")
+
+    def stop_game(self, p):
+        print("Game stopped because of timeout, player " + str(p) + " wins")
+        self.canvas.unbind("<Button-1>", self.click_callback)
+        self.after_cancel(self.running_timer)
+        if p == 1:
+            self.write_text("# 1-0")
+        else:
+            self.write_text("# 0-1")
 
     def click_callback(self, event):
         """ On click event callback """
@@ -295,14 +326,17 @@ class Application(tk.Frame):
             # TODO zistit ci sa vyhodilo alebo nie
             self.write_text(self.moving_piece.name + made_move + " ")
 
-            self.game.next_move()
-
+            # TODO nejak treba zastavit
+            # Start timers
             if not self.game.game_started:
                 self.game.game_started = True
-                if self.game.current_player_color == "b":
-                    self.after(1000, self.show_time, self.timers[2], self.game.current_player_color)
-                else:
-                    self.after(1000, self.show_time, self.timers[1], self.game.current_player_color)
+
+            if self.game.current_player_color == 'w':
+                self.start_opponents_timer(self.timers[0], 2)
+            else:
+                self.start_opponents_timer(self.timers[1], 1)
+
+            self.game.next_move()
 
             # TODO change position too
             # TODO update on board

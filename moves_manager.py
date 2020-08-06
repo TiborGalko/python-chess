@@ -186,6 +186,7 @@ class MovesManager:
 
         return moves
 
+    # TODO chyba ked vidi krala pokracuje dalej
     def rook_move(self, piece):
         moves = []
         x, y = piece.get_indices_on_board()
@@ -198,7 +199,7 @@ class MovesManager:
                 elif piece.color != board[i][y][0]:
                     if not board[i][y].__contains__("K"):
                         moves.append((i, y,))
-                        break
+                    break
                 else:
                     break
         if x > 0:
@@ -209,7 +210,7 @@ class MovesManager:
                 elif piece.color != board[j][y][0]:
                     if not board[j][y].__contains__("K"):
                         moves.append((j, y,))
-                        break
+                    break
                 else:
                     break
         if y < 7:
@@ -220,7 +221,7 @@ class MovesManager:
                 elif piece.color != board[x][k][0]:
                     if not board[x][k].__contains__("K"):
                         moves.append((x, k,))
-                        break
+                    break
                 else:
                     break
         if y > 0:
@@ -231,7 +232,7 @@ class MovesManager:
                 elif piece.color != board[x][l][0]:
                     if not board[x][l].__contains__("K"):
                         moves.append((x, l,))
-                        break
+                    break
                 else:
                     break
 
