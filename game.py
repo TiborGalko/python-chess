@@ -224,6 +224,8 @@ class Application(tk.Frame):
     Other game methods
     """
 
+    # TODO undo funkcionalitu
+
     def raise_check(self):
         # TODO dokoncit metodu
         self.write_text("CHECK!")
@@ -269,6 +271,7 @@ class Application(tk.Frame):
             print("clicked on move", x, y)
             print(" board: ", self.game.board[x][y])
             print(self.moving_piece.position)
+            captured = False
 
             self.move_image_on_canvas(x, y, self.moving_piece.position)
 
@@ -277,16 +280,22 @@ class Application(tk.Frame):
                     self.remove_image_from_canvas(self.game.white_pieces[(self.game.board[x][y])[1:]].position)
                 elif self.game.board[x][y].startswith("b"):
                     self.remove_image_from_canvas(self.game.black_pieces[(self.game.board[x][y])[1:]].position)
+                captured = True
 
             self.game.board[self.moving_piece.x_pos][self.moving_piece.y_pos] = ""
             self.game.board[x][y] = self.moving_piece_key
+
+            # Needed for move text
+            _previous_x_position = self.moving_piece.x_pos
+            _previous_y_position = self.moving_piece.y_pos
+
             self.moving_piece.x_pos = x
             self.moving_piece.y_pos = y
 
             if not self.moving_piece.moved:
                 self.moving_piece.moved = True
 
-            pprint(self.game.board)
+            # pprint(self.game.board)
 
             made_move = string.ascii_lowercase[x] + str(((y - 8) * -1) % 9)
             if self.moving_piece.color == "w":
@@ -303,7 +312,7 @@ class Application(tk.Frame):
             # Pawn pri vyhodeni - exd5 - pesiak z e isiel na d5 a vyhodil
             # TODO En passant vyhodenia - exd6e.p. - pesiak z e isiel na d6 a vyhodil toho na e5 cez en passant
             # Ostatne Be5 - strelec sa posunul na e5, e5 je destination
-            # TODO Pri vyhodeni - Bxe5 - strelec vyhodil na e5
+            # Pri vyhodeni - Bxe5 - strelec vyhodil na e5
 
             # TODO Ak mozu robit pohyby rovnake figurky na rovnake pole treba rozlisit, priorita
             # TODO 1. ak su rozdielne zaciatocne polia - Bdb8 je strelec ktory bol na zaciatku na d poli ak ten druhy strelec je na inom poli
@@ -317,6 +326,7 @@ class Application(tk.Frame):
             # TODO Rosady (castling)
             # TODO Na strane krala - 0-0
             # TODO Na strane kralovnej - 0-0-0
+            # TODO podmienky kedy sa da spravit rosada
 
             # TODO Sach (check) - prida na koniec +
             # TODO Sachmat (checkmate) - prida sa na koniec #
@@ -324,9 +334,15 @@ class Application(tk.Frame):
             # TODO 1|2-1|2 indikuje remizu
 
             # TODO zistit ci sa vyhodilo alebo nie
-            self.write_text(self.moving_piece.name + made_move + " ")
+            if not captured:
+                self.write_text(self.moving_piece.name + made_move + " ")
+            elif self.moving_piece.name == "":
+                self.write_text(string.ascii_lowercase[_previous_x_position] + "x" + made_move + " ")
+            else:
+                self.write_text(self.moving_piece.name + "x" + made_move + " ")
 
-            # TODO nejak treba zastavit
+
+            # TODO nejak treba zastavit asi netreba
             # Start timers
             if not self.game.game_started:
                 self.game.game_started = True
