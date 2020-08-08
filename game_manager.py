@@ -58,8 +58,11 @@ class ChessGame:
 
         self.current_turn = 1
 
-        # Check whether game started to turn on timers
-        self.game_started = False
+        # Must be set to True if any player is in check
+        self.is_game_checked = False
+
+        # Must be set to True if any player is in checkmate
+        self.is_game_checkmated = False
 
     def next_move(self):
         if self.current_player_color == "w":

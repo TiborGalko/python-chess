@@ -26,10 +26,34 @@ class MovesManager:
 
         return moves
 
+    def check_for_check(self, piece, board):
+        """
+        Ran after move to check if check should be raised
+        """
+        moves = self.get_moves(piece, board)
+        if "K" in moves:
+            return True
+        else:
+            return False
+
+
+    # TODO figurka sa nesmie vediet pohnut tak aby bol ohrozeny kral
+
     """
     Moves for each of the pieces
     """
 
+    # TODO kral sa moze hybat iba tak aby sa nedostal do checku
+    # TODO tu sa robia aj rosady
+    # TODO rosady sa daju robit iba ked:
+    # TODO a) kral sa nepohol
+    # TODO b) veza s ktorou sa meni sa nepohla
+    # TODO c) polia medzi kralom a vezou su volne
+    # TODO d) kral nema check
+    # TODO e) kral neprechadza cez polia na ktore utoci protihrac
+    # TODO f) kral neskonci na poli na ktore utoci protihrac
+    # TODO g) Pohyb na dlhu 0-0-0 je z E na C a veza z A na D
+    # TODO h) Pohyb na kratku 0-0 je z E na G a veza z H na F
     def king_move(self, piece):
         moves = []
         x, y = piece.get_indices_on_board()
@@ -37,34 +61,50 @@ class MovesManager:
         if y < 7 and (board[x][y + 1] == "" or piece.color != board[x][y + 1][0]):
             if not board[x][y + 1].__contains__("K"):
                 moves.append((piece.x_pos, piece.y_pos + 1))
+            else:
+                moves.append("K")
 
         if y > 0 and (board[x][y - 1] == "" or piece.color != board[x][y - 1][0]):
             if not board[x][y - 1].__contains__("K"):
                 moves.append((piece.x_pos, piece.y_pos - 1))
+            else:
+                moves.append("K")
 
         if x > 0 and (board[x - 1][y] == "" or piece.color != board[x - 1][y][0]):
             if not board[x - 1][y].__contains__("K"):
                 moves.append((piece.x_pos - 1, piece.y_pos))
+            else:
+                moves.append("K")
 
         if x < 7 and (board[x + 1][y] == "" or piece.color != board[x + 1][y][0]):
             if not board[x + 1][y].__contains__("K"):
                 moves.append((piece.x_pos + 1, piece.y_pos))
+            else:
+                moves.append("K")
 
         if x < 7 and y < 7 and (board[x + 1][y + 1] == "" or piece.color != board[x + 1][y + 1][0]):
             if not board[x + 1][y + 1].__contains__("K"):
                 moves.append((piece.x_pos + 1, piece.y_pos + 1))
+            else:
+                moves.append("K")
 
         if x < 7 and y > 0 and (board[x + 1][y - 1] == "" or piece.color != board[x + 1][y - 1][0]):
             if not board[x + 1][y - 1].__contains__("K"):
                 moves.append((piece.x_pos + 1, piece.y_pos - 1))
+            else:
+                moves.append("K")
 
         if x > 0 and y < 7 and (board[x - 1][y + 1] == "" or piece.color != board[x - 1][y + 1][0]):
             if not board[x - 1][y + 1].__contains__("K"):
                 moves.append((piece.x_pos - 1, piece.y_pos + 1))
+            else:
+                moves.append("K")
 
         if x > 0 and y > 0 and (board[x - 1][y - 1] == "" or piece.color != board[x - 1][y - 1][0]):
             if not board[x - 1][y - 1].__contains__("K"):
                 moves.append((piece.x_pos - 1, piece.y_pos - 1))
+            else:
+                moves.append("K")
 
         return moves
 
@@ -91,6 +131,8 @@ class MovesManager:
                     if piece.color != board[new_x][new_y][0]:
                         if not board[new_x][new_y].__contains__("K"):
                             moves.append((new_x, new_y,))
+                        else:
+                            moves.append("K")
                     break
             else:
                 break
@@ -108,6 +150,8 @@ class MovesManager:
                     if piece.color != board[new_x][new_y][0]:
                         if not board[new_x][new_y].__contains__("K"):
                             moves.append((new_x, new_y,))
+                        else:
+                            moves.append("K")
                     break
             else:
                 break
@@ -125,6 +169,8 @@ class MovesManager:
                     if piece.color != board[new_x][new_y][0]:
                         if not board[new_x][new_y].__contains__("K"):
                             moves.append((new_x, new_y,))
+                        else:
+                            moves.append("K")
                     break
             else:
                 break
@@ -142,6 +188,8 @@ class MovesManager:
                     if piece.color != board[new_x][new_y][0]:
                         if not board[new_x][new_y].__contains__("K"):
                             moves.append((new_x, new_y,))
+                        else:
+                            moves.append("K")
                     break
             else:
                 break
@@ -155,34 +203,50 @@ class MovesManager:
         if y > 0 and x < 7 and (board[x + 1][y - 2] == "" or piece.color != board[x + 1][y - 2][0]):
             if not board[x + 1][y - 2].__contains__("K"):
                 moves.append((x + 1, y - 2,))
+            else:
+                moves.append("K")
 
         if y > 0 and x > 0 and (board[x - 1][y - 2] == "" or piece.color != board[x - 1][y - 2][0]):
             if not board[x - 1][y - 2].__contains__("K"):
                 moves.append((x - 1, y - 2,))
+            else:
+                moves.append("K")
 
         if y < 6 and x < 7 and (board[x + 1][y + 2] == "" or piece.color != board[x + 1][y + 2][0]):
             if not board[x + 1][y + 2].__contains__("K"):
                 moves.append((x + 1, y + 2,))
+            else:
+                moves.append("K")
 
         if y < 6 and x > 0 and (board[x - 1][y + 2] == "" or piece.color != board[x - 1][y + 2][0]):
             if not board[x - 1][y + 2].__contains__("K"):
                 moves.append((x - 1, y + 2,))
+            else:
+                moves.append("K")
 
         if y > 0 and x > 1 and (board[x - 2][y - 1] == "" or piece.color != board[x - 2][y - 1][0]):
             if not board[x - 2][y - 1].__contains__("K"):
                 moves.append((x - 2, y - 1,))
+            else:
+                moves.append("K")
 
         if y > 0 and x < 6 and (board[x + 2][y - 1] == "" or piece.color != board[x + 2][y - 1][0]):
             if not board[x + 2][y - 1].__contains__("K"):
                 moves.append((x + 2, y - 1,))
+            else:
+                moves.append("K")
 
         if y < 7 and x > 1 and (board[x - 2][y + 1] == "" or piece.color != board[x - 2][y + 1][0]):
             if not board[x - 2][y + 1].__contains__("K"):
                 moves.append((x - 2, y + 1,))
+            else:
+                moves.append("K")
 
         if y < 7 and x < 6 and (board[x + 2][y + 1] == "" or piece.color != board[x + 2][y + 1][0]):
             if not board[x + 2][y + 1].__contains__("K"):
                 moves.append((x + 2, y + 1,))
+            else:
+                moves.append("K")
 
         return moves
 
@@ -199,6 +263,8 @@ class MovesManager:
                 elif piece.color != board[i][y][0]:
                     if not board[i][y].__contains__("K"):
                         moves.append((i, y,))
+                    else:
+                        moves.append("K")
                     break
                 else:
                     break
@@ -210,6 +276,8 @@ class MovesManager:
                 elif piece.color != board[j][y][0]:
                     if not board[j][y].__contains__("K"):
                         moves.append((j, y,))
+                    else:
+                        moves.append("K")
                     break
                 else:
                     break
@@ -221,6 +289,8 @@ class MovesManager:
                 elif piece.color != board[x][k][0]:
                     if not board[x][k].__contains__("K"):
                         moves.append((x, k,))
+                    else:
+                        moves.append("K")
                     break
                 else:
                     break
@@ -232,6 +302,8 @@ class MovesManager:
                 elif piece.color != board[x][l][0]:
                     if not board[x][l].__contains__("K"):
                         moves.append((x, l,))
+                    else:
+                        moves.append("K")
                     break
                 else:
                     break
@@ -250,10 +322,14 @@ class MovesManager:
         if x > 0 and board[x - 1][y - 1].startswith("b"):
             if not board[x - 1][y - 1].__contains__("K"):
                 moves.append((x - 1, y - 1,))
+            else:
+                moves.append("K")
 
         if x < 7 and board[x + 1][y - 1].startswith("b"):
             if not board[x + 1][y - 1].__contains__("K"):
                 moves.append((x + 1, y - 1,))
+            else:
+                moves.append("K")
 
         return moves
 
@@ -269,8 +345,12 @@ class MovesManager:
         if x > 0 and y < 7 and board[x - 1][y + 1].startswith("w"):
             if not board[x - 1][y + 1].__contains__("K"):
                 moves.append((x - 1, y + 1,))
+            else:
+                moves.append("K")
 
         if x < 7 and y < 7 and board[x + 1][y + 1].startswith("w"):
             if not board[x + 1][y + 1].__contains__("K"):
                 moves.append((x + 1, y + 1,))
+            else:
+                moves.append("K")
         return moves

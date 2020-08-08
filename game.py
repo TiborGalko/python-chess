@@ -13,7 +13,7 @@ class Application(tk.Frame):
         super().__init__(master, width=width, height=height)
         self.master = master
 
-        self.loaded_images = dict()  # kept to not be recycled by garbage collector
+        self.loaded_images = dict()  # kept to not be recycled by garbage collector key is piece's starting position
         self.images = dict()  # keeping piece images based on piece starting position as key
 
         self.offset_x = -40
@@ -98,12 +98,12 @@ class Application(tk.Frame):
             x_pos = self.width * value.x_pos
             y_pos = self.width * value.y_pos
             img = self.load_image("images/" + value.image, value.starting_position)
-            self.place_image_on_canvas(x_pos, y_pos, img, "images/" + value.image, value.position)
+            self.place_image_on_canvas(x_pos, y_pos, img, "images/" + value.image, value.starting_position)
         for key, value in self.game.black_pieces.items():
             x_pos = self.width * value.x_pos
             y_pos = self.width * value.y_pos
             img = self.load_image("images/" + value.image, value.starting_position)
-            self.place_image_on_canvas(x_pos, y_pos, img, "images/" + value.image, value.position)
+            self.place_image_on_canvas(x_pos, y_pos, img, "images/" + value.image, value.starting_position)
 
     def load_image(self, image_name, piece_name):
         """ Helper method for loading images """
@@ -115,26 +115,29 @@ class Application(tk.Frame):
         image_id = self.canvas.create_image(x, y, image=img, tags=(image_name, "piece"), anchor="nw")
         self.images[piece_starting_position] = image_id
 
-    def remove_image_from_canvas(self, piece_position):
-        print("Removing image on key ", piece_position)
-        self.canvas.delete(self.images[piece_position])
+    def remove_image_from_canvas(self, piece_starting_position):
+        print("Removing image on key ", piece_starting_position)
+        self.canvas.delete(self.images[piece_starting_position])
 
-    def move_image_on_canvas(self, new_x, new_y, piece_position):
-        self.remove_image_from_canvas(piece_position)
-        img, image_name = self.loaded_images[self.moving_piece.starting_position]
+    def move_image_on_canvas(self, new_x, new_y, piece_starting_position):
+        self.remove_image_from_canvas(piece_starting_position)
+        img, image_name = self.loaded_images[piece_starting_position]
         self.place_image_on_canvas(self.width * new_x,
                                    self.width * new_y,
                                    img,
                                    image_name,
-                                   self.moving_piece.starting_position)
+                                   piece_starting_position)
 
     def show_moves_on_canvas(self, moves):
         for move in moves:
-            self.actual_moves_ids.append(self.canvas.create_oval(move[0] * self.width + 15,
-                                                                 move[1] * self.width + 15,
-                                                                 move[0] * self.width + 15 + (self.width / 2),
-                                                                 move[1] * self.width + 15 + (self.width / 2),
-                                                                 fill="green"))
+            # If K is in moves there is check
+            # TODO toto asi nebude potrebne ked bude spravne spraveny check
+            if move != "K":
+                self.actual_moves_ids.append(self.canvas.create_oval(move[0] * self.width + 15,
+                                                                     move[1] * self.width + 15,
+                                                                     move[0] * self.width + 15 + (self.width / 2),
+                                                                     move[1] * self.width + 15 + (self.width / 2),
+                                                                     fill="green"))
 
     def clear_moves_on_canvas(self):
         for move in self.actual_moves_ids:
@@ -209,7 +212,6 @@ class Application(tk.Frame):
             min = min - 1
 
         if min <= 0:
-            # TODO ukonci hru lebo skoncil cas
             self.stop_game(p)
 
         if p == 2:
@@ -225,10 +227,15 @@ class Application(tk.Frame):
     """
 
     # TODO undo funkcionalitu
+    def undo_move(self):
+        raise NotImplemented
 
     def raise_check(self):
-        # TODO dokoncit metodu
-        self.write_text("CHECK!")
+        self.write_text("+ ")
+        self.game.is_game_checked = True
+
+    def remove_check(self):
+        self.game.is_game_checked = False
 
     def stop_game(self, p):
         print("Game stopped because of timeout, player " + str(p) + " wins")
@@ -252,7 +259,7 @@ class Application(tk.Frame):
         if 0 <= x < 8 and 0 <= y < 8:
             board_value = self.game.board[x][y]
             if self.moving:
-                # check if second click isnt on another piece
+                # check if second click isn't on another piece
                 if board_value != "" and board_value[0] == self.game.current_player_color:
                     self.calculate_moves_for_moving_piece(x, y)
                 else:
@@ -263,23 +270,25 @@ class Application(tk.Frame):
 
     def mouse_move_callback(self, event):
         """ On mouse move event callback """
-        # TODO
+        # TODO drag and drop figuriek
         print("moving at ", event.x + self.offset_x, event.y + self.offset_y)
 
     def move_piece(self, x, y):
         if (x, y) in self.moves:
-            print("clicked on move", x, y)
-            print(" board: ", self.game.board[x][y])
-            print(self.moving_piece.position)
+            # print("clicked on move", x, y)
+            # print(" board: ", self.game.board[x][y])
             captured = False
 
-            self.move_image_on_canvas(x, y, self.moving_piece.position)
+            if self.game.is_game_checked:
+                self.remove_check()
+
+            self.move_image_on_canvas(x, y, self.moving_piece.starting_position)
 
             if self.game.board[x][y] != "":
                 if self.game.board[x][y].startswith("w"):
-                    self.remove_image_from_canvas(self.game.white_pieces[(self.game.board[x][y])[1:]].position)
+                    self.remove_image_from_canvas(self.game.white_pieces[(self.game.board[x][y])[1:]].starting_position)
                 elif self.game.board[x][y].startswith("b"):
-                    self.remove_image_from_canvas(self.game.black_pieces[(self.game.board[x][y])[1:]].position)
+                    self.remove_image_from_canvas(self.game.black_pieces[(self.game.board[x][y])[1:]].starting_position)
                 captured = True
 
             self.game.board[self.moving_piece.x_pos][self.moving_piece.y_pos] = ""
@@ -292,6 +301,7 @@ class Application(tk.Frame):
             self.moving_piece.x_pos = x
             self.moving_piece.y_pos = y
 
+            # TODO toto sa da pouzit pre vyhadzovani s en passant
             if not self.moving_piece.moved:
                 self.moving_piece.moved = True
 
@@ -301,18 +311,11 @@ class Application(tk.Frame):
             if self.moving_piece.color == "w":
                 self.write_text(str(self.game.current_turn) + ". ")
 
-            # TODO CHECK FOR CHECK AND CHECK MATE
-            # TODO zmenit meno pre piece po pohnuti
-
             print(self.moving_piece)
             print(self.moving_piece.name)
 
             # POPIS notacie :
-            # Pawn - destination square
-            # Pawn pri vyhodeni - exd5 - pesiak z e isiel na d5 a vyhodil
             # TODO En passant vyhodenia - exd6e.p. - pesiak z e isiel na d6 a vyhodil toho na e5 cez en passant
-            # Ostatne Be5 - strelec sa posunul na e5, e5 je destination
-            # Pri vyhodeni - Bxe5 - strelec vyhodil na e5
 
             # TODO Ak mozu robit pohyby rovnake figurky na rovnake pole treba rozlisit, priorita
             # TODO 1. ak su rozdielne zaciatocne polia - Bdb8 je strelec ktory bol na zaciatku na d poli ak ten druhy strelec je na inom poli
@@ -333,19 +336,15 @@ class Application(tk.Frame):
             # TODO Po skonceni sa 1-0 znamena ze biely vyhral, 0-1 ze cierny vyhral
             # TODO 1|2-1|2 indikuje remizu
 
-            # TODO zistit ci sa vyhodilo alebo nie
+            # TODO sach - kral sa musi pohnut tak aby uz nemal check
+            # TODO sach - ina figurka sa moze pohnut tak aby zakryla krala
+
             if not captured:
                 self.write_text(self.moving_piece.name + made_move + " ")
             elif self.moving_piece.name == "":
                 self.write_text(string.ascii_lowercase[_previous_x_position] + "x" + made_move + " ")
             else:
                 self.write_text(self.moving_piece.name + "x" + made_move + " ")
-
-
-            # TODO nejak treba zastavit asi netreba
-            # Start timers
-            if not self.game.game_started:
-                self.game.game_started = True
 
             if self.game.current_player_color == 'w':
                 self.start_opponents_timer(self.timers[0], 2)
@@ -354,8 +353,11 @@ class Application(tk.Frame):
 
             self.game.next_move()
 
-            # TODO change position too
-            # TODO update on board
+            is_check = self.moves_manager.check_for_check(self.moving_piece, self.game.board)
+            if is_check:
+                self.raise_check()
+
+            self.moving_piece.position = made_move
 
     def calculate_moves_for_moving_piece(self, x, y):
         """
@@ -363,11 +365,16 @@ class Application(tk.Frame):
         :param x: x coordinate on board
         :param y: y coordinate on board
         """
-        print("clicked at ", x, y)
-        print(self.game.board[x][y])
+        # print("clicked at ", x, y)
+        # print(self.game.board[x][y])
         board_value = self.game.board[x][y]
         player_color = self.game.current_player_color
         if board_value != "" and board_value[0] == self.game.current_player_color:
+
+            # TODO tu sa musia vediet pohnut okrem krala aj figurky ktore mozu zabranit sachu
+            if self.game.is_game_checked and board_value != self.game.current_player_color + "K":
+                return
+
             self.moving = True
             self.moving_piece_key = board_value
 

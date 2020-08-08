@@ -1,7 +1,9 @@
 class Piece:
     """ Class representing chess pieces """
     def __init__(self, starting_position, position, image, color, x_pos=0, y_pos=0, name=""):
+        # Used as key for images
         self.starting_position = starting_position
+        # Not yet used
         self.position = position
         self.image = image
         self.x_pos = x_pos
